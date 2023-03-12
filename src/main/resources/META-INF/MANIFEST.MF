@@ -1,0 +1,7 @@
+Manifest-Version: 1.0
+Main-Class: org.dufner.PDFFilter
+Class-Path: bcutil-jdk15on-1.70.jar commons-7.2.5.jar kernel-7.2.5.jar l
+ og4j-1.2.17.jar slf4j-api-1.7.36.jar slf4j-log4j12-1.7.18.jar json-2023
+ 0227.jar bcprov-jdk15on-1.70.jar bcpkix-jdk15on-1.70.jar layout-7.2.5.j
+ ar json-20230227.jar io-7.2.5.jar
+

@@ -1,0 +1,17 @@
+{
+  "settings":{
+    "folder": "./test/pdfs"
+  },
+  "filter":
+  [
+    {
+      "regex": "(ABC)[1]\\d\\d",
+      "move_to": "./test/filtered"
+    },
+    {
+      "keywords": ["XYZ%Nr"],
+      "move_to": "./test/filtered",
+      "append_date": true
+    }
+  ]
+}
