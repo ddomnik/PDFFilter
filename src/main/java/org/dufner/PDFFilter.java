@@ -237,7 +237,7 @@ public class PDFFilter {
 
                             //Search for date (extra)
                             if(append_date) {
-                                Pattern pattern = Pattern.compile("(0[1-9]|[12][0-9]|3[01])[- /.](0[1-9]|1[012])[- /.](20)\\d\\d");
+                                Pattern pattern = Pattern.compile("(0[1-9]|[12][0-9]|3[01])[-.](0[1-9]|1[012])[-.](20)\\d\\d");
                                 Matcher matcher = pattern.matcher(content);
                                 if (matcher.find()) {
                                     pdf_date = matcher.group();
