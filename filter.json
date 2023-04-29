@@ -1,6 +1,8 @@
 {
   "settings":{
-    "folder": "./test/pdfs"
+    "folder": "./test/pdfs",
+    "no_match": "./test/filtered/nomatch",
+    "processing_error": "./test/filtered/error"
   },
   "filter":
   [

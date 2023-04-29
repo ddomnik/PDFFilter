@@ -28,6 +28,8 @@ public class PDFFilter {
 
     private static String SETTINGS_DIR = "filter.json";
     private static String INPUT_DIR = "./";
+    private static String NO_MATCH_DIR = "";
+    private static String PROCESSING_ERROR_DIR = "";
     private static Boolean ADD_DATE = false;
 
     private static ArrayList<File> PDFs = new ArrayList<>();
@@ -125,7 +127,20 @@ public class PDFFilter {
             JSONObject json = new JSONObject(json_file);
 
             JSONObject read_settings = json.getJSONObject("settings");
-            INPUT_DIR = read_settings.getString("folder");
+            if(read_settings.has("folder"))
+            {
+                INPUT_DIR = read_settings.getString("folder");
+            }
+
+            if(read_settings.has("no_match"))
+            {
+                NO_MATCH_DIR = read_settings.getString("no_match");
+            }
+
+            if(read_settings.has("processing_error"))
+            {
+                PROCESSING_ERROR_DIR = read_settings.getString("processing_error");
+            }
 
             FILTER = json.getJSONArray("filter");
 
@@ -146,7 +161,7 @@ public class PDFFilter {
             File[] listOfFiles = folder.listFiles();
             for (File file : listOfFiles) {
                 if (file.isFile()) {
-                    if (file.getName().endsWith(".pdf")) {
+                    if (file.getName().toLowerCase().endsWith(".pdf")) {
                         PDFs.add(file);
                     }
                 }
@@ -161,154 +176,158 @@ public class PDFFilter {
 
     public static void apply_filter()
     {
-        try
-        {
             // Go through all PDFs
-            if(PDFs.size() > 0)
-            {
-                for (int idx_pdf = 0; idx_pdf < PDFs.size(); idx_pdf++)
-                {
-                    int matching_filter = -1;
+            if(PDFs.size() > 0) {
+                for (int idx_pdf = 0; idx_pdf < PDFs.size(); idx_pdf++) {
+                    try {
+                        int matching_filter = -1;
 
-                    PdfReader pdf_reader = new PdfReader(PDFs.get(idx_pdf).getPath());
-                    PdfDocument pdf = new PdfDocument(pdf_reader);
+                        write_log("Processing " + PDFs.get(idx_pdf).getName());
 
-                    String pdf_date = "";
+                        PdfReader pdf_reader = new PdfReader(PDFs.get(idx_pdf).getPath());
+                        PdfDocument pdf = new PdfDocument(pdf_reader);
 
-                    // Go through all pages
-                    for (int idx_page = 1 ; idx_page <= pdf.getNumberOfPages() ; idx_page++)
-                    {
-                        String content = PdfTextExtractor.getTextFromPage(pdf.getPage(idx_page));
+                        String pdf_date = "";
 
-                        // Go through all filters
-                        for(int idx_filter = 0 ; idx_filter < FILTER.length(); idx_filter ++)
+                        // Go through all pages
+                        for (int idx_page = 1; idx_page <= pdf.getNumberOfPages(); idx_page++) {
+                            String content = PdfTextExtractor.getTextFromPage(pdf.getPage(idx_page));
+
+                            // Go through all filters
+                            for (int idx_filter = 0; idx_filter < FILTER.length(); idx_filter++) {
+                                JSONObject filter = FILTER.getJSONObject(idx_filter);
+
+                                JSONArray keywords = new JSONArray();
+                                if (filter.has("keywords")) {
+                                    keywords.putAll(filter.getJSONArray("keywords"));
+
+                                }
+
+                                String regex = "";
+                                if (filter.has("regex")) {
+                                    regex = filter.getString("regex");
+
+                                }
+
+                                Boolean append_date = false;
+                                if (filter.has("append_date")) {
+                                    append_date = filter.getBoolean("append_date");
+                                }
+
+
+                                if (regex.equals("") && keywords.length() == 0) {
+                                    write_log("filter " + idx_filter + " needs at least a 'keywords' (array) or 'regex' (String) entry.");
+                                    idx_page = pdf.getNumberOfPages() + 1;
+                                    continue;
+                                }
+
+
+                                // Search for keyword
+                                for (int idx_keyword = 0; idx_keyword < keywords.length(); idx_keyword++) {
+                                    if (content.contains(keywords.getString(idx_keyword))) {
+                                        write_log("  Found keyword '" + keywords.getString(idx_keyword) + "' in PDF '" + PDFs.get(idx_pdf).getName() + "'");
+                                        matching_filter = idx_filter;
+                                        break;
+                                    }
+                                }
+
+                                // Search for regex
+                                if (!regex.equals("")) {
+                                    Pattern pattern = Pattern.compile(regex);
+                                    Matcher matcher = pattern.matcher(content);
+                                    if (matcher.find()) {
+                                        write_log("  Regex '" + regex + "' matches content of PDF '" + PDFs.get(idx_pdf).getName() + "'");
+                                        matching_filter = idx_filter;
+                                        break;
+                                    }
+                                }
+
+                                //Search for date (extra)
+                                if (append_date) {
+                                    Pattern pattern = Pattern.compile("(0[1-9]|[12][0-9]|3[01])[-.](0[1-9]|1[012])[-.](20)\\d\\d");
+                                    Matcher matcher = pattern.matcher(content);
+                                    if (matcher.find()) {
+                                        pdf_date = matcher.group();
+                                        write_log("  Date 'pdf_date' found in PDF '" + PDFs.get(idx_pdf).getName() + "'");
+                                    }
+                                }
+
+
+                                if (matching_filter != -1) {
+                                    break;
+                                }
+                            }
+                            if (matching_filter != -1) {
+                                break;
+                            }
+                        }
+
+                        pdf.close();
+                        pdf_reader.close();
+
+                        if (matching_filter != -1) //A filter matched
                         {
-                            JSONObject filter = FILTER.getJSONObject(idx_filter);
+                            JSONObject filter = FILTER.getJSONObject(matching_filter);
 
-                            JSONArray keywords = new JSONArray();
-                            if(filter.has("keywords"))
-                            {
-                                keywords.putAll(filter.getJSONArray("keywords"));
-
+                            String move = "";
+                            if (filter.has("move_to")) {
+                                move = filter.getString("move_to");
                             }
 
-                            String regex = "";
-                            if(filter.has("regex"))
-                            {
-                                regex = filter.getString("regex");
-
-                            }
-
-                            Boolean append_date = false;
-                            if(filter.has("append_date"))
-                            {
-                                append_date = filter.getBoolean("append_date");
+                            String script = "";
+                            if (filter.has("run_script")) {
+                                script = filter.getString("run_script");
                             }
 
 
-                            if(regex.equals("") && keywords.length() == 0)
-                            {
-                                write_log("filter "+idx_filter+" needs at least a 'keywords' (array) or 'regex' (String) entry.");
-                                idx_page = pdf.getNumberOfPages()+1;
+                            if (move.equals("") && script.equals("")) {
+                                write_log("filter " + matching_filter + " needs at least a 'move_to' (String) or 'run_script' (String) entry.");
                                 continue;
                             }
 
 
-                            // Search for keyword
-                            for(int idx_keyword = 0 ; idx_keyword < keywords.length(); idx_keyword ++)
-                            {
-                                if(content.contains(keywords.getString(idx_keyword))) {
-                                    write_log("Found keyword '"+keywords.getString(idx_keyword)+"' in PDF '"+PDFs.get(idx_pdf).getName()+"'");
-                                    matching_filter = idx_filter;
-                                    break;
+                            if (!move.equals("")) {
+                                if (!pdf_date.equals("")) {
+                                    int idx_file_dot = PDFs.get(idx_pdf).getName().lastIndexOf(".");
+                                    String filename = PDFs.get(idx_pdf).getName().substring(0, idx_file_dot);
+                                    String fileext = PDFs.get(idx_pdf).getName().substring(idx_file_dot);
+                                    write_log("  File moved (match): " + PDFs.get(idx_pdf).renameTo(new File(move + "/" + filename + " " + pdf_date + fileext)));
+                                } else {
+                                    write_log("  File moved (match): " + PDFs.get(idx_pdf).renameTo(new File(move + "/" + PDFs.get(idx_pdf).getName())));
                                 }
                             }
 
-                            // Search for regex
-                            if(!regex.equals("")) {
-                                Pattern pattern = Pattern.compile(regex);
-                                Matcher matcher = pattern.matcher(content);
-                                if (matcher.find()) {
-                                    write_log("Regex '" + regex + "' matches content of PDF '" + PDFs.get(idx_pdf).getName() + "'");
-                                    matching_filter = idx_filter;
-                                    break;
+                            if (!script.equals("")) {
+                                run_script(script, PDFs.get(idx_pdf).getAbsolutePath());
+                            }
+
+                        } else //No filter matched
+                        {
+                            if (!NO_MATCH_DIR.equals("")) {
+                                if (!pdf_date.equals("")) {
+                                    int idx_file_dot = PDFs.get(idx_pdf).getName().lastIndexOf(".");
+                                    String filename = PDFs.get(idx_pdf).getName().substring(0, idx_file_dot);
+                                    String fileext = PDFs.get(idx_pdf).getName().substring(idx_file_dot);
+                                    write_log("  File moved (no match): " + PDFs.get(idx_pdf).renameTo(new File(NO_MATCH_DIR + "/" + filename + " " + pdf_date + fileext)));
+                                } else {
+                                    write_log("  File moved (no match): " + PDFs.get(idx_pdf).renameTo(new File(NO_MATCH_DIR + "/" + PDFs.get(idx_pdf).getName())));
                                 }
                             }
-
-                            //Search for date (extra)
-                            if(append_date) {
-                                Pattern pattern = Pattern.compile("(0[1-9]|[12][0-9]|3[01])[-.](0[1-9]|1[012])[-.](20)\\d\\d");
-                                Matcher matcher = pattern.matcher(content);
-                                if (matcher.find()) {
-                                    pdf_date = matcher.group();
-                                    write_log("Date 'pdf_date' found in PDF '" + PDFs.get(idx_pdf).getName() + "'");
-                                }
-                            }
-
-
-                            if(matching_filter != -1){
-                                break;
-                            }
-                        }
-                        if(matching_filter != -1){
-                            break;
                         }
                     }
+                    catch(Exception e) {
 
-                    pdf.close();
-                    pdf_reader.close();
+                        System.gc();
 
-                    if(matching_filter != -1)
-                    {
-                        JSONObject filter = FILTER.getJSONObject(matching_filter);
-
-                        String move = "";
-                        if(filter.has("move_to"))
-                        {
-                            move = filter.getString("move_to");
+                        try { //Give garbage collector time to release opened files
+                            Thread.sleep(100);
+                        } catch (InterruptedException er) {
+                            Thread.currentThread().interrupt();
                         }
-
-                        String script = "";
-                        if(filter.has("run_script"))
-                        {
-                            script = filter.getString("run_script");
-                        }
-
-
-                        if(move.equals("") && script.equals(""))
-                        {
-                            write_log("filter "+matching_filter+" needs at least a 'move_to' (String) or 'run_script' (String) entry.");
-                            continue;
-                        }
-
-
-                        if(!move.equals(""))
-                        {
-                            if(!pdf_date.equals(""))
-                            {
-                                int idx_file_dot = PDFs.get(idx_pdf).getName().lastIndexOf(".");
-                                String filename = PDFs.get(idx_pdf).getName().substring(0, idx_file_dot);
-                                String fileext = PDFs.get(idx_pdf).getName().substring(idx_file_dot);
-                                write_log("File moved: "+PDFs.get(idx_pdf).renameTo(new File(move+"/"+filename+" "+pdf_date+fileext)));
-                            }
-                            else
-                            {
-                                write_log("File moved: "+PDFs.get(idx_pdf).renameTo(new File(move+"/"+PDFs.get(idx_pdf).getName()) ) );
-                            }
-                        }
-
-                        if(!script.equals(""))
-                        {
-                            run_script(script,PDFs.get(idx_pdf).getAbsolutePath());
-                        }
-
+                        write_log("  ERROR: "+e.toString());
+                        write_log("  File moved (error): " + PDFs.get(idx_pdf).renameTo(new File(PROCESSING_ERROR_DIR + "/" + PDFs.get(idx_pdf).getName())));
                     }
                 }
             }
-        }
-        catch (Exception e){
-            write_log(e.toString());
-            exit(-1);
-        }
     }
 }
