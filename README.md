@@ -4,7 +4,7 @@ PDFFilter allows searching PDFs content as text and perform either a move or run
 
 ## Installation / Running
 
-1. Download PDFFilter.jar from the release page
+1. Download PDFFilter.jar from the [release page](https://github.com/ddomnik/PDFFilter/releases)
 
 1. Simply run the .jar by executing this command:  
 `java -jar .\PDFFilter.jar`
@@ -12,7 +12,19 @@ PDFFilter allows searching PDFs content as text and perform either a move or run
 1. Make sure a filter.json is located in the same folder as the PDFFilter.jar or specify a custom filter file using the following command:  
 `java -jar .\PDFFilter.jar  "/path/to/myFilter.json"`
 
-## Filter
+## filter.json
+
+### settings:
+```
+{
+  "settings":{
+    "folder": "./test/pdfs",   // Path to directory that contains the PDFs to be filtered
+    "no_match": "./test/filtered/nomatch",    // (optional) if set, PDFs that do not match any filter will be moved in that directory
+    "processing_error": "./test/filtered/error"   // Path for PDFs that could not be processed
+  }
+```
+
+### filter:
 
 A simple filter can contain the following:
 
