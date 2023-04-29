@@ -1,6 +1,6 @@
 # PDFFilter
 
-PDFFilter allows searching PDFs content as text and perform either a move or run a custom script if a keyword or regex has been found.
+PDFFilter allows searching PDFs content as text and perform either a move or run a custom script (currently only on Windows) if a keyword or regex has been found.
 
 ## Installation / Running
 
