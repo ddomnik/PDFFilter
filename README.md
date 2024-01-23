@@ -1,6 +1,8 @@
 # PDFFilter
 
-PDFFilter allows searching PDFs content as text and perform either a move or run a custom script (currently only on Windows) if a keyword or regex has been found.
+PDFFilter allows searching PDFs content as text and perform a custom task.  
+For example, a PDF is moved to a custom folder or a script is executed (currently only on Windows) if a search matches.  
+The search method can be a simple word, one out of multible words or a regex.  
 
 ## Installation / Running
 
@@ -62,14 +64,14 @@ Please note hat everything after an `#` needs to be removed to make this filter 
   "filter":
   [
     {
-      "keywords": ["Invoice"],                     #Comment: Move all PDFs that contain "Invoice" to the given folder. If a date is found, it gets added to the PDF filename
+      "keywords": ["Invoice"],                     #Comment: Move all PDFs that contain "Invoice" to the given folder. 
       "move_to": "./test/filtered/invoices",
-      "append_date": true
+      "append_date": true                          #Comment: If a date is found, it gets added to the PDF filename
     },
     {
       "keywords": ["Ads", "Newsletter", "News"],   #Comment: Move all PDFs that contain at least of these 3 words.
       "move_to": "./test/filtered/spam",
-      "append_date": true
+      "append_date": true                          #Comment: If a date is found, it gets added to the PDF filename
     },
     {
       "regex": "(item-)[1]\\d\\d",                 #Comment: Move all PDFs that contain the word "item-1XX" where XX is a digit. For example if "item-123" is found.
