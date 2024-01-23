@@ -46,3 +46,35 @@ where:
 If a keyword from `keywords` or the `regex` is matched in a PDF the `move_to` and/or `run_script` is executed.  
 The key `move_to` is a path (folder) where the PDF is moved to. This can be absolute or relative to the .jar  
 The key `run_script` is path (relative or absolute) to a Windows .ps1 script, that is executed. The script is called with a _-pdf_ parameter containing the PDFs path.  If the key `append_date` is set to _true_ a date with the pattern dd.MM.yyyy and dd-MM-yyyy is searched within the PDF. If found, it will be added to the filename if `move_to` is set. Returns the first date found.
+
+
+### Example filter:
+
+Please note hat everything after an `#` needs to be removed to make this filter work.
+
+```
+{
+  "settings":{
+    "folder": "./test/pdfs",
+    "no_match": "./test/filtered/nomatch",
+    "processing_error": "./test/filtered/error"
+  },
+  "filter":
+  [
+    {
+      "keywords": ["Invoice"],                     #Comment: Move all PDFs that contain "Invoice" to the given folder. If a date is found, it gets added to the PDF filename
+      "move_to": "./test/filtered/invoices",
+      "append_date": true
+    },
+    {
+      "keywords": ["Ads", "Newsletter", "News"],   #Comment: Move all PDFs that contain at least of these 3 words.
+      "move_to": "./test/filtered/spam",
+      "append_date": true
+    },
+    {
+      "regex": "(item-)[1]\\d\\d",                 #Comment: Move all PDFs that contain the word "item-1XX" where XX is a digit. For example if "item-123" is found.
+      "move_to": "./test/filtered/item"
+    },
+  ]
+}
+```
